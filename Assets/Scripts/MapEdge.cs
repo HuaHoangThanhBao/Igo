@@ -9,8 +9,9 @@ public class MapEdge: MonoBehaviour
     public bool isBlack;
     public GameObject chess;
 
-    private void Start()
+    public void SetPos(Vector3 dir_pos)
     {
-        pos = transform.position;
+        pos = dir_pos;
+        transform.position = dir_pos;
     }
 }

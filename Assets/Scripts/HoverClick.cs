@@ -7,73 +7,71 @@ public class HoverClick : MonoBehaviour
     public GameObject White_chees;
     public GameObject Black_chess;
     public GameObject Hover;
-    public AIBot bot = new AIBot();
     private bool isBlack;
     public bool my_turn = true;
-    public static HoverClick instance;
-
-    private void Awake()
-    {
-        instance = this;
-    }
 
     private void Update()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        //if (my_turn)
-        //{
-        if (Physics.Raycast(ray, out hit, Mathf.Infinity))
+        if (my_turn)
         {
-            if (hit.collider != null)
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity))
             {
-                if (hit.transform.GetComponent<MapEdge>() != null)
+                if (hit.collider != null)
                 {
-                    if (!hit.transform.GetComponent<MapEdge>().placed)
+                    if (hit.transform.GetComponent<MapEdge>() != null)
                     {
-                        Hover.SetActive(true);
-                        Hover.transform.localPosition =
-                            new Vector3(hit.transform.GetComponent<MapEdge>().pos.x, 0.52f, hit.transform.GetComponent<MapEdge>().pos.z);
-
-                        if (Input.GetMouseButtonDown(0))
+                        if (!hit.transform.GetComponent<MapEdge>().placed)
                         {
-                            isBlack = !isBlack;
-                            if (isBlack)
-                            {
-                                my_turn = false;
-                                GameObject black = Instantiate(Black_chess, hit.transform.GetComponent<MapEdge>().pos, Quaternion.identity);
-                                hit.transform.GetComponent<MapEdge>().placed = true;
-                                hit.transform.GetComponent<MapEdge>().chess = black;
+                            Hover.SetActive(true);
+                            Hover.transform.localPosition =
+                                new Vector3(hit.transform.GetComponent<MapEdge>().pos.x, 0.52f, hit.transform.GetComponent<MapEdge>().pos.z);
 
-                                bot.AddNewPos(hit.transform.GetComponent<MapEdge>());
-                                //StartCoroutine(AI_Turn(hit));
-                            }
-                            else
+                            if (Input.GetMouseButtonDown(0))
                             {
-                                GameObject white = Instantiate(White_chees, hit.transform.GetComponent<MapEdge>().pos, Quaternion.identity);
-                                hit.transform.GetComponent<MapEdge>().placed = true;
-                                hit.transform.GetComponent<MapEdge>().chess = white;
+                                MapEdge current = hit.transform.GetComponent<MapEdge>();
 
-                                bot.AddNewPos(hit.transform.GetComponent<MapEdge>());
+                                isBlack = !isBlack;
+
+                                GameObject chess = null;
+
+                                chess = Instantiate(Black_chess, current.pos, Quaternion.identity);
+
+                                Map.instance.board.Placed_Chess(current, chess, isBlack);
+                                Map.instance.mapControl.changeType.Update_Chess(current);
+
+                                StartCoroutine(AI_Turn());
                             }
-                            hit.transform.GetComponent<MapEdge>().isBlack = isBlack;
-                            Map.instance.mapControl.changeType.Update_Chess(hit.transform.GetComponent<MapEdge>());
                         }
                     }
+                    else Hover.SetActive(false);
                 }
-                else Hover.SetActive(false);
             }
-            //}
         }
         else Hover.SetActive(false);
     }
 
-    IEnumerator AI_Turn(RaycastHit hit)
+    IEnumerator AI_Turn()
     {
-        yield return new WaitForSeconds(1f);
-        GameObject black = Instantiate(White_chees, bot.Auto(hit.transform.GetComponent<MapEdge>().pos), Quaternion.identity);
-        hit.transform.GetComponent<MapEdge>().placed = true;
+        my_turn = false;
+        isBlack = !isBlack;
+
+        yield return new WaitForSeconds(0.2f);
+
+        Move move = Map.instance.board.findBestMove();
+        Debug.Log(move.pos);
+        MapEdge current = Map.instance.board.Find_Pos(move.pos);
+
+        if (current != null)
+        {
+            GameObject black = Instantiate(White_chees, move.pos, Quaternion.identity);
+
+            Map.instance.board.Placed_Chess(current, black, isBlack);
+            Map.instance.mapControl.changeType.Update_Chess(current);
+        }
+
         my_turn = true;
     }
 }
