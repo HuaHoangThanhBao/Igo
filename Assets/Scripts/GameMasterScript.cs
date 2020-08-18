@@ -2,11 +2,12 @@
 using System.Collections;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 public class GameMasterScript : MonoBehaviour {
 
 	[SerializeField]
-	private PieceColor[,] board;
+	private PieceColor[,] board = default;
 
 	[SerializeField]
 	private GameObject[,] boardObjects;
@@ -14,11 +15,16 @@ public class GameMasterScript : MonoBehaviour {
 
 
 	[SerializeField]
-	private GameObject whitePiece;
+	private GameObject whitePiece = default;
 	[SerializeField]
-	private GameObject blackPiece;
+	private GameObject blackPiece = default;
 	[SerializeField]
-	private GameObject dummyPiece;
+	private GameObject dummyPiece = default;
+
+	[SerializeField]
+	private TextMeshProUGUI black_move_text = default;
+	[SerializeField]
+	private TextMeshProUGUI white_move_text = default;
 
 	private int whiteScore = 0;
 	private int blackScore = 0;
@@ -43,20 +49,9 @@ public class GameMasterScript : MonoBehaviour {
 	private int AIDiff;
 
 	[SerializeField]
-	private GameObject playingCanvas;
+	private GameObject endCanvas = default;
 
-	[SerializeField]
-	private GameObject endCanvas;
-
-	[SerializeField]
-	private Text currentTurnText;
-
-    private void Awake()
-	{
-		currentTurnText.text = "Your Turn (Black)";
-	}
-
-    void Start () {
+	void Start () {
 
 		//Khởi tạo mảng rỗng (các trạng thái của ô cờ)
 		board = new PieceColor[,] {
@@ -101,7 +96,6 @@ public class GameMasterScript : MonoBehaviour {
 		currentTurn = turn.player;
 		currentState = gameState.Menu;
 
-		playingCanvas.SetActive(false);
 		endCanvas.SetActive(false);
 
 		AIscript = GetComponent<MiniMax>();
@@ -127,9 +121,8 @@ public class GameMasterScript : MonoBehaviour {
 				getClick(pos.x, pos.z);
 			}
 
-			//if (Input.GetKeyDown(KeyCode.M)) {
-			//	doEnemyMove();
-			//}
+			black_move_text.text = "Black: " + blackScore;
+			white_move_text.text = "White: " + whiteScore;
 		}
 	}
 
@@ -157,8 +150,6 @@ public class GameMasterScript : MonoBehaviour {
 			blackScore++;
 			//Đặt cờ
 			doFlips(newX, newY, PieceColor.Black, dPiece);
-			//Set text
-			currentTurnText.text = "AI Turn (White)";
 			//Chuyển lượt cho bot
 			StartCoroutine(enemyMove());
 		}
@@ -171,15 +162,18 @@ public class GameMasterScript : MonoBehaviour {
 
 	void doEnemyMove() 
 	{
-		//1 = 1 depth, chưa thông minh
-		//2 = 1 depth, bắt đầu thông minh
-		//10 = 5 depth, rất thông minh
 		move bestMove;
 
-		if (AIDiff % 2 == 0) {
+		if (AIDiff == 12)//Hard
+		{
 			bestMove = AIscript.miniMaxBetter(board, Mathf.CeilToInt(AIDiff/2.0F), true, -99999, 99999, 0, 0);
 		}
-		else {
+		else if (AIDiff == 6)//Medium
+		{
+			bestMove = AIscript.miniMax(board, Mathf.CeilToInt(AIDiff/4.0F), true, -99999, 99999, 0, 0);
+		}
+		else//Normal
+		{
 			bestMove = AIscript.miniMax(board, Mathf.CeilToInt(AIDiff/2.0F), true, -99999, 99999, 0, 0);
 		}
 
@@ -197,15 +191,12 @@ public class GameMasterScript : MonoBehaviour {
 			whiteScore++;
 			//Đặt cờ
 			doFlips(bestMove.i, bestMove.j, PieceColor.White, dPiece);
-			//Set text
-			currentTurnText.text = "Your Turn (Black)";
 			//Nếu ko còn nước đặt thì kết thúc game
 			if (isGameOver()) 
 			{
 				print("PLAYER CAN'T MOVE!");
 				endGame();
 			}
-
 		}
 		else 
 		{
@@ -529,7 +520,6 @@ public class GameMasterScript : MonoBehaviour {
 	public void startGame(int difficulty) {
 		AIDiff = difficulty;
 		currentState = gameState.Playing;
-		playingCanvas.SetActive(true);
 		isGameOver();
 		print("Starting game with difficulty: " + difficulty);
 	}
@@ -539,30 +529,20 @@ public class GameMasterScript : MonoBehaviour {
 		SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 	}
 
-	//Thoát game
-	public void quitGame() {
-		Application.Quit();
+	//Quay trở về menu
+	public void quitGame()
+	{
+		SceneManager.LoadScene(0);
 	}
 
 	//Kết thúc game
 	void endGame() {
 		currentState = gameState.End;
-		playingCanvas.SetActive(false);
 		endCanvas.SetActive(true);
 		if (whiteScore > blackScore) {
 			endCanvas.transform.GetChild(1).GetComponent<Text>().text = "You Lose...";
 		}
 		print ("final score: BLACK: " + blackScore + " WHITE: " + whiteScore);
-	}
-
-	//Vẽ 3 khung label + set text cho chúng
-	void OnGUI() {
-		if (currentState == gameState.Playing || currentState == gameState.End)
-		{
-			GUI.Label(new Rect(20, 20, 200, 100), "Black: " + blackScore);
-			GUI.Label(new Rect(20, 40, 200, 100), "White: " + whiteScore);
-			GUI.Label(new Rect(20, 60, 200, 100), "AI Difficulty: " + AIDiff);
-		}
 	}
 }
 
